@@ -1,4 +1,5 @@
 <?php
+
 class Producto
 {
     public $id;
@@ -34,5 +35,39 @@ class Producto
         }
         return $productos;
 	}
+    public static function TraerUnProducto_Id($id) 
+	{
+        $producto = null;
+        $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
+        $consulta =$objetoAccesoDato->RetornarConsulta("select * from productos where id_producto = ?");
+        $consulta->bindValue(1, $id, PDO::PARAM_INT);
+        $consulta->execute();
+        $productoBuscado= $consulta->fetchObject();
+        if($productoBuscado != null){
+            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->id_producto,);
+        }
+        return $producto;
+	}
+    public static function MapearParaMostrar($array){
+        if(count($array) > 0){
+            foreach($array as $i){
+                switch($i->sector){
+                    case 1:
+                        $i->sector = "Barra de tragos";
+                    break;
+                    case 2:
+                        $i->sector = "Barra de choperas";
+                    break;
+                    case 3:
+                        $i->sector = "Cocina";
+                    break;
+                    case 4:
+                        $i->sector = "Candy bar";
+                    break;
+                }
+            }
+        }
+        return $array;
+    }
 }
 ?>

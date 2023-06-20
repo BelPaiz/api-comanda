@@ -39,5 +39,26 @@ class Mesa
         $consulta->bindValue(2, $this->id, PDO::PARAM_INT);
         return$consulta->execute();
     }
+    public static function MapearParaMostrar($array){
+        if(count($array) > 0){
+            foreach($array as $i){
+                switch($i->estado){
+                    case 1:
+                        $i->estado = "Con cliente esperando pedido";
+                    break;
+                    case 2:
+                        $i->estado = "Con cliente comiendo";
+                    break;
+                    case 3:
+                        $i->estado = "Con cliente pagando";
+                    break;
+                    case 4:
+                        $i->estado = "Cerrada";
+                    break;
+                }
+            }
+        }
+        return $array;
+    }
 }
 ?>
