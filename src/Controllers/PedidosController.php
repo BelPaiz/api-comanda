@@ -25,7 +25,7 @@ class PedidosController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Empleado" ,"Mozo");
+            $respuesta = Usuario::ValidarToken($token, "Empleado" ,0);
             if($respuesta == "Validado")
             {
                 $pedido = new Pedido();
@@ -97,20 +97,8 @@ class PedidosController
                         $retorno = json_encode(array("mensaje" => "No se pudo realizar"));
                     }
                     else{
-                        $subtipo = null;
-                        switch($sector){
-                            case 1:
-                                $subtipo = "Bartender";
-                            break;
-                            case 2:
-                                $subtipo = "Cervecero";
-                            break;
-                            default:
-                                $subtipo = "Cocinero";
-                            break;
-                        }
                         $token = $param['token'];
-                        $respuesta = Usuario::ValidarToken($token, "Empleado" ,$subtipo);
+                        $respuesta = Usuario::ValidarToken($token, "Empleado" ,$sector);
                         if($respuesta == "Validado"){
                             if($tiempoOK == 1){
                                 $pedido->Actualizar_items_BD();

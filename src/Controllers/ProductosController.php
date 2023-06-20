@@ -7,6 +7,7 @@ use Producto;
 use Usuario;
 
 require '../src/Clases/Producto.php';
+require '../src/Clases/Usuario.php';
 
 class ProductosController
 {

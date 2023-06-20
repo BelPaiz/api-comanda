@@ -48,6 +48,19 @@ class Producto
         }
         return $producto;
 	}
+    public static function TraerUnProducto_Nombre($nombre_producto) 
+	{
+        $producto = null;
+        $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
+        $consulta =$objetoAccesoDato->RetornarConsulta("select * from productos where nombre = ?");
+        $consulta->bindValue(1, $nombre_producto, PDO::PARAM_STR);
+        $consulta->execute();
+        $productoBuscado= $consulta->fetchObject();
+        if($productoBuscado != null){
+            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->id_producto,);
+        }
+        return $producto;
+	}
     public static function MapearParaMostrar($array){
         if(count($array) > 0){
             foreach($array as $i){

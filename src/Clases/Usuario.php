@@ -130,15 +130,15 @@ class Usuario
         $consulta->bindValue(3, $this->id, PDO::PARAM_INT);
         return$consulta->execute();
     }
-    public static function ValidarToken($token, $tipo, $subTipo = null){
+    public static function ValidarToken($token, $tipo, $sector = null){
         $usuario = null;
         $time = time();
         $usuario = self::TraerUnUsuario_Token($token);
         $resp = "No autorizado";
         if($usuario != null && $usuario->tipo == $tipo){
             if($time < $usuario->token_exp){
-               if($subTipo != null){
-                    if($usuario->subTipo == $subTipo){
+               if($sector != null){
+                    if($usuario->sector == $sector){
                         $resp =  "Validado";
                     }
                 }

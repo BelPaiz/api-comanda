@@ -59,7 +59,7 @@ class MesasController
         else{
             $token = $param['token'];
             $respuesta = Usuario::ValidarToken($token, "Admin");
-            $resp2 = Usuario::ValidarToken($token, "Empleado", "Mozo");
+            $resp2 = Usuario::ValidarToken($token, "Empleado", 0);
             if($respuesta == "Validado" || $resp2 == "Validado")
             {
                 $parametros = $request->getParsedBody();

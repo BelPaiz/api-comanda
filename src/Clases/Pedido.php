@@ -106,6 +106,13 @@ class Pedido
         }
         return false;
     }
+    public function Clcular_tiempo_total_pedido(){
+        $tiempo_acumulado = 0;
+        foreach($this->items as $i){
+            $tiempo_acumulado += $i->tiempo;           
+        }
+        return $tiempo_acumulado;
+    }
     public function Ver_tiempo_restante($id_producto){
         $ahora = new DateTime();
         $minutos = null;
