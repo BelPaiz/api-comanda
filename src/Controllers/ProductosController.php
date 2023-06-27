@@ -4,10 +4,10 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Producto;
-use Usuario;
+use Autenticador;
 
 require '../src/Clases/Producto.php';
-require '../src/Clases/Usuario.php';
+require_once '../src/Clases/Autenticador.php';
 
 class ProductosController
 {
@@ -25,15 +25,17 @@ class ProductosController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Admin");
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
             if($respuesta == "Validado")
             {
                 $parametros = $request->getParsedBody();
                 $nombre = $parametros['nombre'];
                 $sector = $parametros['sector'];
+                $precio = $parametros['precio'];
 
-                $producto = new Producto($nombre, $sector);
+                $producto = new Producto($nombre, $sector, $precio);
                 $ok = $producto->InsertarProducto();
+                echo "producto: ", $ok;
                 if($ok != null){
                     $retorno = json_encode(array("mensaje" => "Producto creado con exito"));
                 }

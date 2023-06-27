@@ -4,9 +4,10 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Usuario;
-use Firebase\JWT\JWT;
+use Autenticador;
 
 require '../src/Clases/Usuario.php';
+require_once '../src/Clases/Autenticador.php';
 
 class UsuariosController
 {
@@ -21,11 +22,70 @@ class UsuariosController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Admin");
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
             if($respuesta == "Validado"){
                 $usuarios = Usuario::TraerTodoLosUsuarios();
                 $usuariosFiltrados = Usuario::FiltrarParaMostrar($usuarios);
                 $retorno = json_encode(array("ListadoUsuarios"=>$usuariosFiltrados));
+            }
+            else{
+                $retorno = json_encode(array("mensaje" => $respuesta));
+            }
+        }
+        $response->getBody()->write($retorno);
+        return $response;
+    }
+    public static function GET_GaurdarEnCSV(Request $request, Response $response, array $args){
+        $path = "Usuarios.csv";
+        $param = $request->getQueryParams();
+        if(!isset($param['token'])){
+            $retorno = json_encode(array("mensaje" => "Token necesario"));
+        }
+        else{
+            $token = $param['token'];
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
+            if($respuesta == "Validado"){
+                $usuarios = Usuario::TraerTodoLosUsuarios_EnArray();
+                $archivo = fopen($path, "w");
+                $encabezado = array("id", "nombre", "apellido", "tipo", "sub_tipo", "sector", "email", "password", "fecha_registro");
+                fputcsv($archivo, $encabezado);
+                foreach($usuarios as $fila){
+                    fputcsv($archivo, $fila);
+                }
+                fclose($archivo);
+                $retorno = json_encode(array("mensaje"=>"Usuarios guardados en CSV con exito"));
+            }
+            else{
+                $retorno = json_encode(array("mensaje" => $respuesta));
+            }
+        }
+        $response->getBody()->write($retorno);
+        return $response;
+    }
+    public static function GET_CargarUsuariosCSV(Request $request, Response $response, array $args){
+        $path = "Usuarios.csv";
+        $param = $request->getQueryParams();
+        if(!isset($param['token'])){
+            $retorno = json_encode(array("mensaje" => "Token necesario"));
+        }
+        else{
+            $token = $param['token'];
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
+            if($respuesta == "Validado"){
+                $archivo = fopen($path, "r");
+                $encabezado = fgets($archivo);
+
+                while(!feof($archivo)){
+                    $linea = fgets($archivo);
+                    $datos = str_getcsv($linea);
+                    if(isset($datos[1])){
+                        $usuario = new Usuario($datos[1], $datos[2], $datos[3],$datos[6],$datos[7],$datos[4],$datos[5],$datos[8],$datos[0]);
+                        $usuario->InsertarUsuario();
+                    }
+                }
+                fclose($archivo);
+                
+                $retorno = json_encode(array("mensaje"=>"Usuarios guardados en base de datos con exito"));
             }
             else{
                 $retorno = json_encode(array("mensaje" => $respuesta));
@@ -41,7 +101,7 @@ class UsuariosController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Admin");
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
             if($respuesta == "Validado")
             {
                 $parametros = $request->getParsedBody();
@@ -80,12 +140,10 @@ class UsuariosController
 
         if($usuarioEncontrado != null){
             if($contraseña == $usuarioEncontrado->password){
-                $token = Usuario::Definir_token($usuarioEncontrado->id, $email);
-                $jwt = JWT::encode($token, "miClaveSecreta123", "HS256");
+                $token = Autenticador::Definir_token($usuarioEncontrado->id, $email);
 
                 $data = array(
-                    "token" => $jwt,
-                    "token_exp" => $token["exp"]
+                    "token" => $token
                 );
                 $usuarioEncontrado->ModificarTokenDB($data);
                 $retorno = json_encode(array("mensaje" => "Proceso exitoso"));

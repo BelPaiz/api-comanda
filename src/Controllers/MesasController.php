@@ -3,17 +3,31 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Mesa;
-use Usuario;
+use Autenticador;
 require '../src/Clases/Mesa.php';
 require '../src/Clases/Usuario.php';
+require_once '../src/Clases/Autenticador.php';
 
 class MesasController
 {
     public static function GET_TraerTodos(Request $request, Response $response, array $args){
-        $mesas = Mesa::TraerTodoLasMesas();
-        $mesasMapp = Mesa::MapearParaMostrar($mesas);
-        $listado = json_encode(array("Listado_de_productos"=>$mesasMapp));
-        $response->getBody()->write($listado);
+        $param = $request->getQueryParams();
+        if(!isset($param['token'])){
+            $retorno = json_encode(array("mensaje" => "Token necesario"));
+        }
+        else{
+            $token = $param['token'];
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
+            if($respuesta == "Validado"){
+                $mesas = Mesa::TraerTodoLasMesas();
+                $mesasMapp = Mesa::MapearParaMostrar($mesas);
+                $retorno = json_encode(array("Mesas"=>$mesasMapp));
+            }
+            else{
+                $retorno = json_encode(array("mensaje" => $respuesta));
+            }
+        } 
+        $response->getBody()->write($retorno);
         return $response;
     }
     public static function POST_Alta_de_mesa(Request $request, Response $response, array $args){
@@ -23,7 +37,7 @@ class MesasController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Admin");
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
             if($respuesta == "Validado")
             {
                 $parametros = $request->getParsedBody();
@@ -58,8 +72,8 @@ class MesasController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Admin");
-            $resp2 = Usuario::ValidarToken($token, "Empleado", 0);
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
+            $resp2 = Autenticador::ValidarToken($token, "Empleado", 0);
             if($respuesta == "Validado" || $resp2 == "Validado")
             {
                 $parametros = $request->getParsedBody();

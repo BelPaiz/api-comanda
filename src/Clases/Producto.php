@@ -5,11 +5,13 @@ class Producto
     public $id;
     public $nombre;
     public $sector;
+    public $precio;
 
-    public function __construct($nombre, $sector, $id = null)
+    public function __construct($nombre, $sector, $precio, $id = null)
     {
         $this->nombre = $nombre;
         $this->sector = $sector;
+        $this->precio = $precio;
         if($id != null){
             $this->id = $id;
         }
@@ -17,20 +19,20 @@ class Producto
     public function InsertarProducto()
 	{
 		$objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
-		$consulta =$objetoAccesoDato->RetornarConsulta("INSERT into productos (nombre, sector)values('$this->nombre','$this->sector')");
+		$consulta =$objetoAccesoDato->RetornarConsulta("INSERT into productos (nombre, sector, precio)values('$this->nombre','$this->sector', '$this->precio')");
 		$consulta->execute();
 		return $objetoAccesoDato->RetornarUltimoIdInsertado();
 	}
     public static function TraerTodoLosProductos()
 	{
         $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
-        $consulta =$objetoAccesoDato->RetornarConsulta("select id_producto as id, nombre as nombre, sector as sector from productos");
+        $consulta =$objetoAccesoDato->RetornarConsulta("select id_producto as id, nombre as nombre, sector as sector, precio as precio from productos");
         $consulta->execute();
         $arrayObtenido = array();
         $productos = array();
         $arrayObtenido = $consulta->fetchAll(PDO::FETCH_OBJ);
         foreach($arrayObtenido as $i){
-            $producto = new Producto($i->nombre, $i->sector, $i->id );
+            $producto = new Producto($i->nombre, $i->sector, $i->precio, $i->id );
             $productos[] = $producto;
         }
         return $productos;
@@ -44,9 +46,19 @@ class Producto
         $consulta->execute();
         $productoBuscado= $consulta->fetchObject();
         if($productoBuscado != null){
-            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->id_producto,);
+            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->precio, $productoBuscado->id_producto,);
         }
         return $producto;
+	}
+    public static function TraerPrecio_Nombre($nombre) 
+	{
+        $precio = null;
+        $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
+        $consulta =$objetoAccesoDato->RetornarConsulta("select precio from productos where nombre = ?");
+        $consulta->bindValue(1, $nombre, PDO::PARAM_STR);
+        $consulta->execute();
+        $precio= $consulta->fetchObject();
+        return $precio;
 	}
     public static function TraerUnProducto_Nombre($nombre_producto) 
 	{
@@ -57,7 +69,7 @@ class Producto
         $consulta->execute();
         $productoBuscado= $consulta->fetchObject();
         if($productoBuscado != null){
-            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->id_producto,);
+            $producto = new Producto($productoBuscado->nombre, $productoBuscado->sector, $productoBuscado->precio, $productoBuscado->id_producto,);
         }
         return $producto;
 	}

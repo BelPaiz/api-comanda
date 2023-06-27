@@ -32,6 +32,7 @@ class Pedido
 	}
     public static function TraerTodoLosPedidos()
 	{
+        $pedido = null;
         $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
         $consulta =$objetoAccesoDato->RetornarConsulta("select id as id, numero_pedido as numero_pedido, items as items from pedidos");
         $consulta->execute();
@@ -39,7 +40,8 @@ class Pedido
         $pedidos = array();
         $arrayObtenido = $consulta->fetchAll(PDO::FETCH_OBJ);
         foreach($arrayObtenido as $i){
-            $pedido = new Pedido($i->numero_pedido, $i->items, $i->id );
+            $itemsJson = json_decode($i->items);
+            $pedido = new Pedido($itemsJson, $i->numero_pedido, $i->id );
             $pedidos[] = $pedido;
         }
         return $pedidos;
@@ -78,7 +80,7 @@ class Pedido
         $producto_pedido = array(
             "nombre"=>$producto->nombre,
             "estado"=>0,
-            "tiempo"=>0
+            "tiempo"=>0,
         );
         array_push($this->items,$producto_pedido);
     }
@@ -90,44 +92,33 @@ class Pedido
             if($i->nombre == $producto->nombre){
                 $i->estado = $estado;
                 $sector = $producto->sector;
-                return $sector;
             }
         }
         return $sector;
     }
+    
     public function Agregar_tiempo_item($id_producto, $tiempo_minutos)
     {
+        $ok = false;
         $producto = Producto::TraerUnProducto_Id($id_producto);
         foreach($this->items as $i){
             if($i->nombre == $producto->nombre){
                 $i->tiempo = $tiempo_minutos;
-                return true;
+                $ok = true;
             }
         }
-        return false;
+        return $ok;
     }
-    public function Clcular_tiempo_total_pedido(){
-        $tiempo_acumulado = 0;
+    public function Calcular_tiempo_total_pedido(){
+        $tiempo_demora = 0;
         foreach($this->items as $i){
-            $tiempo_acumulado += $i->tiempo;           
+            if($i->tiempo > $tiempo_demora){
+                $tiempo_demora = $i->tiempo;
+            }       
         }
-        return $tiempo_acumulado;
+        return $tiempo_demora;
     }
-    public function Ver_tiempo_restante($id_producto){
-        $ahora = new DateTime();
-        $minutos = null;
-        $producto = Producto::TraerUnProducto_Id($id_producto);
-        foreach($this->items as $i){
-            if($i->nombre == $producto->nombre){
-                $minutos = $i->tiempo;
-                break;
-            }
-        }
-        $tiempoObjetivo = $ahora->modify("+{minutos} minutes");
-        $diferencia = $ahora->diff($tiempoObjetivo);
-        $minutosRestantes = $diferencia->i;
-        return $minutosRestantes;
-    }
+    
     public function Actualizar_items_BD()
     {
         $itemsJson = json_encode($this->items);
@@ -140,20 +131,92 @@ class Pedido
     public static function MapearParaMostrar($array){
         if(count($array) > 0){
             foreach($array as $i){
-                switch($i->estado){
-                    case 0:
-                        $i->estado = "Pendiente";
-                    break;
-                    case 1:
-                        $i->estado = "En preparacion";
-                    break;
-                    case 2:
-                        $i->estado = "Listo para servir";
-                    break;
+                foreach($i->items as $p){
+                    switch($p->estado){
+                        case 0:
+                            $p->estado = "Pendiente";
+                        break;
+                        case 1:
+                            $p->estado = "En preparacion";
+                        break;
+                        case 2:
+                            $p->estado = "Listo para servir";
+                        break;
+                    }
                 }
+                
             }
         }
         return $array;
+    }
+    public static function FiltrarSegunSector($array, $sector, $estado = null){
+        $arrayFiltrado = array();
+        $itemsFillter = array();
+        if(count($array) > 0){
+            foreach($array as $i){
+                foreach($i->items as $p){
+                    $producto = Producto::TraerUnProducto_Nombre($p->nombre);
+                    if($producto->sector == $sector){
+                        if($estado != null){
+                            if($p->estado == $estado){
+                                array_push($itemsFillter, $p);
+                            }
+                            
+                        }
+                        else{
+                            array_push($itemsFillter, $p);
+                        }
+                    }
+                }
+                $i->items = $itemsFillter;
+                $itemsFillter = array();
+                if(count($i->items) > 0){
+                    array_push($arrayFiltrado, $i);
+                }
+            }
+        }
+        return $arrayFiltrado;
+    }
+    public static function FiltrarSegun_estado($array, $estado){
+        $arrayFiltrado = array();
+        $itemsFillter = array();
+        if(count($array) > 0){
+            foreach($array as $i){
+                foreach($i->items as $p){
+                    if($p->estado == $estado){
+                        
+                        array_push($itemsFillter, $p);
+                    }
+                }
+                $i->items = $itemsFillter;
+                $itemsFillter = array();
+                if(count($i->items) > 0){
+                    array_push($arrayFiltrado, $i);
+                }
+            }
+        }
+        return $arrayFiltrado;
+    }
+    public static function Comprobar_estado_pedido_listo($array){
+        $arrayFiltrado = array();
+        $itemsFillter = array();
+        if(count($array) > 0){
+            foreach($array as $i){
+                $items_cantidad = count($i->items);
+                foreach($i->items as $p){
+                    if($p->estado == 2){
+                        
+                        array_push($itemsFillter, $p);
+                    }
+                }
+                if($items_cantidad == count($itemsFillter)){
+                    $i->items = $itemsFillter;
+                    array_push($arrayFiltrado, $i);
+                }
+                $itemsFillter = array();
+            }
+        }
+        return $arrayFiltrado;
     }
 }
 

@@ -39,6 +39,13 @@ class Mesa
         $consulta->bindValue(2, $this->id, PDO::PARAM_INT);
         return$consulta->execute();
     }
+    public static function CambiarEstadoMesa_Id($estado, $id_mesa){
+        $objetoAccesoDato = AccesoDatos::dameUnObjetoAcceso(); 
+        $consulta =$objetoAccesoDato->RetornarConsulta("update mesas set estado = ? where id = ?");
+        $consulta->bindValue(1, $estado, PDO::PARAM_INT);
+        $consulta->bindValue(2, $id_mesa, PDO::PARAM_INT);
+        return$consulta->execute();
+    }
     public static function MapearParaMostrar($array){
         if(count($array) > 0){
             foreach($array as $i){

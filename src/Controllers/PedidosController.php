@@ -1,5 +1,7 @@
 <?php
 namespace App\Controllers;
+
+use Autenticador;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
@@ -8,14 +10,32 @@ use Usuario;
 
 require '../src/Clases/Pedido.php';
 require_once '../src/Clases/Usuario.php';
+require_once '../src/Clases/Autenticador.php';
 
 class PedidosController
 {
     public static function GET_TraerTodos(Request $request, Response $response, array $args){
-        $pedidos = Pedido::TraerTodoLosPedidos();
-        $pedidosMapp = Pedido::MapearParaMostrar($pedidos);
-        $listado = json_encode(array("Listado_de_productos"=>$pedidosMapp));
-        $response->getBody()->write($listado);
+        $param = $request->getQueryParams();
+        if(!isset($param['token'])){
+            $respuesta = json_encode(array("mensaje" => "Token necesario"));
+        }
+        else{
+            $token = $param['token'];
+            $respuesta = Autenticador::ValidarToken($token, "Admin");
+            if($respuesta == "Validado"){
+                $pedidos = Pedido::TraerTodoLosPedidos();
+                $pedidosMapp = Pedido::MapearParaMostrar($pedidos);
+                $respuesta = json_encode(array("Listado_de_pedidos"=>$pedidosMapp));
+            }
+            else{
+                $sector = Autenticador::TraerSectorDesdeToken($token);
+                $pedidos = Pedido::TraerTodoLosPedidos();
+                $pedidosFiltrados = Pedido::FiltrarSegunSector($pedidos, $sector);
+                $pedidosMapp = Pedido::MapearParaMostrar($pedidosFiltrados);
+                $respuesta = json_encode(array("Listado_de_pedidos"=>$pedidosMapp));
+            }
+        }
+        $response->getBody()->write($respuesta);
         return $response;
     }
     public static function POST_AltaPedido(Request $request, Response $response, array $args){
@@ -25,14 +45,13 @@ class PedidosController
         }
         else{
             $token = $param['token'];
-            $respuesta = Usuario::ValidarToken($token, "Empleado" ,0);
+            $respuesta = Autenticador::ValidarToken($token, "Empleado" ,0);
             if($respuesta == "Validado")
             {
                 $pedido = new Pedido();
                 $parametros = $request->getParsedBody();
                 $cadena_items = $parametros['items'];
                 $elementos = explode(",", $cadena_items);
-                print_r($elementos);
                 foreach($elementos as $i){
                     echo $i;
                     $pedido->Cargar_item_nuevo($i);
@@ -98,7 +117,7 @@ class PedidosController
                     }
                     else{
                         $token = $param['token'];
-                        $respuesta = Usuario::ValidarToken($token, "Empleado" ,$sector);
+                        $respuesta = Autenticador::ValidarToken($token, "Empleado" ,$sector);
                         if($respuesta == "Validado"){
                             if($tiempoOK == 1){
                                 $pedido->Actualizar_items_BD();
@@ -114,6 +133,62 @@ class PedidosController
                     }
                 }
             }
+        }
+        $response->getBody()->write($retorno);
+        return $response;
+    }
+    public static function GET_ConsultarTiempo(Request $request, Response $response, array $args){
+        $param = $request->getQueryParams();
+        if(!isset($param['numero_pedido'])){
+            $retorno = json_encode(array("mensaje" => "ingrese numeo de pedido"));
+        }
+        else{
+            $numero_pedido = $param['numero_pedido'];
+            $pedido = Pedido::TraerUnPedido_Numero_pedido($numero_pedido);
+            $tiempo = $pedido->Calcular_tiempo_total_pedido();
+            $retorno = json_encode(array("La demora es" => $tiempo." minutos"));
+        }
+        $response->getBody()->write($retorno);
+        return $response;
+    }
+    public static function GET_Listar_pedidos_segun_estado(Request $request, Response $response, array $args){
+        $param = $request->getQueryParams();
+        if(!isset($param['token'])){
+            $retorno = json_encode(array("mensaje" => "Token necesario"));
+        }
+        else{
+            $token = $param['token'];
+            if(isset($param['estado'])){
+                $estado = $param['estado'];
+                $respuesta = Autenticador::ValidarToken($token, "Admin");
+                if($respuesta == "Validado"){
+                    $pedidos = Pedido::TraerTodoLosPedidos();
+                    $pedidosFiltrados = Pedido::FiltrarSegun_estado($pedidos,  $estado);
+                    $pedidosMapp = Pedido::MapearParaMostrar($pedidosFiltrados);
+                    $retorno = json_encode(array("Listado_de_pedidos"=>$pedidosMapp));
+                }
+                else{
+                    if($respuesta = Autenticador::ValidarToken($token, "Empleado", 0) == "Validado"){
+                        $pedidos = Pedido::TraerTodoLosPedidos();
+                        $pedidosFiltrados = Pedido::FiltrarSegun_estado($pedidos,  $estado);
+                        $pedidosMapp = Pedido::MapearParaMostrar($pedidosFiltrados);
+                        $retorno = json_encode(array("Listado_de_pedidos"=>$pedidosMapp));
+                    }
+                    else{
+                        $sector = Autenticador::TraerSectorDesdeToken($token);
+                        $pedidos = Pedido::TraerTodoLosPedidos();
+                        $pedidosFill = Pedido::FiltrarSegun_estado($pedidos,  $estado);
+                        $pedidosFiltrados = Pedido::FiltrarSegunSector($pedidosFill, $sector, 0);
+                        $pedidosMapp = Pedido::MapearParaMostrar($pedidosFiltrados);
+                        $retorno = json_encode(array("Listado_de_pedidos"=>$pedidosMapp));
+                    }
+                    
+                }
+            }
+            else{
+                $retorno = json_encode(array("mensaje" => "Ingrese estado a consultar"));
+            }
+            
         }
         $response->getBody()->write($retorno);
         return $response;
